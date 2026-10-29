@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "dotenv>=0.9.9",
+    "flash>=1.0.3",
     "flask>=3.1.3",
 ]
 
