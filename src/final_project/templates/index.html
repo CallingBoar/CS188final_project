@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    <main>
+      <p>I'm here</p>
+    </main>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/button.js') }}"></script>
+{% endblock %}
+
+<!-- This is an HTML comment -->
+{# This is a Jinja comment #}

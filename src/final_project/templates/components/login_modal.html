@@ -1,0 +1,32 @@
+{#
+  The login modal. base.html includes this once, near the bottom of the page.
+  It stays hidden until a button with data-bs-target="#loginModal" opens it.
+  Submitting the form is up to you: write the code for it in auth.js.
+  Pay close attention to the ids here (loginForm, loginUsername, loginPassword).
+#}
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="loginModalLabel">Log in</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="loginForm" novalidate>
+          <div class="mb-3">
+            <label for="loginUsername" class="form-label">Username</label>
+            <input type="text" class="form-control" id="loginUsername" name="username" autocomplete="username" required />
+            <div class="invalid-feedback">Username must be alphanumeric and at most 20 characters.</div>
+          </div>
+          <div class="mb-3">
+            <label for="loginPassword" class="form-label">Password</label>
+            <input type="password" class="form-control" id="loginPassword" name="password" autocomplete="current-password" required />
+            <div class="invalid-feedback">Password must be at least 8 characters and contain no spaces.</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Log in</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

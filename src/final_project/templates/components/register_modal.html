@@ -1,0 +1,61 @@
+{#
+  The register modal. base.html includes this once, near the bottom of the page.
+  It stays hidden until a button with data-bs-target="#registerModal" opens it.
+  auth.js handles submitting the form.
+#}
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="registerModalLabel">Register</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {#
+          novalidate turns off the browser's built-in validation popups so that
+          our JavaScript can show Bootstrap's error messages instead.
+        #}
+        <form id="registerForm" novalidate>
+          <div class="mb-3">
+            <label for="registerUsername" class="form-label">Username</label>
+            <input
+              type="text"
+              class="form-control"
+              id="registerUsername"
+              name="username"
+              autocomplete="username"
+              required
+              pattern="^[a-zA-Z0-9]{1,20}$"
+            />
+            <div class="invalid-feedback">Username must be alphanumeric and at most 20 characters.</div>
+          </div>
+          <div class="mb-3">
+            <label for="registerPassword" class="form-label">Password</label>
+            {#
+              \x21-\x7E is the range of ASCII characters from ! to ~ (no spaces).
+              {8,} means at least 8 of them. https://ss64.com/ascii.html has the full table.
+              autocomplete="new-password" tells password managers to offer to generate one.
+            #}
+            <input
+              type="password"
+              class="form-control"
+              id="registerPassword"
+              name="password"
+              autocomplete="new-password"
+              required
+              pattern="^[\x21-\x7E]{8,}$"
+            />
+            <div class="invalid-feedback">Password must be at least 8 characters and contain no spaces.</div>
+          </div>
+          <div class="mb-3">
+            <label for="registerDisplayName" class="form-label">Display name</label>
+            <input type="text" class="form-control" id="registerDisplayName" name="displayName" autocomplete="nickname" required />
+            <div class="invalid-feedback">Display name cannot be empty.</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Register</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

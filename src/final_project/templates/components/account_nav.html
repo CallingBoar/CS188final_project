@@ -1,0 +1,14 @@
+{#
+  The account section on the right side of the navbar.
+  Logged in: show who they are and a logout button.
+  Logged out: show the buttons that open the login and register modals.
+#}
+<div class="ms-auto d-flex align-items-center gap-2">
+  {% if current_user %}
+    <span class="navbar-text">Signed in as {{ current_user.display_name }}</span>
+    <button type="button" id="logoutButton" class="btn btn-outline-danger btn-sm">Log out</button>
+  {% else %}
+    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">Log in</button>
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#registerModal">Register</button>
+  {% endif %}
+</div>
