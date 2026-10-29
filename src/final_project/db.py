@@ -13,6 +13,16 @@ class Database:
     def __init__(self, db_name):
         self.conn = connect(db_name)
         self.create_tables()
+
+    def close(self) -> None:
+        """Close the connection.
+
+        With mssql-python, "closing" actually hands the connection back to the
+        driver's built-in connection pool, so the next request can reuse it
+        instead of logging in to Azure all over again. Anything that was not
+        committed is rolled back.
+        """
+        self.conn.close()
     
     def create_tables(self):
         with self.conn:
@@ -21,7 +31,8 @@ class Database:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            displayname TEXT NOT NULL
+            displayname TEXT NOT NULL,
+            last_login DATETIME
             )""")
             self.conn.execute("""
             CREATE TABLE IF NOT EXISTS files (
@@ -37,7 +48,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS sessions (
             sessionid INTEGER PRIMARY KEY AUTOINCREMENT,
             userid INTEGER NOT NULL,
-            expiry DATETIME NOT NULL 
+            expiry DATETIME NOT NULL
             )""")
 
     def add_user(self, username, hashed_pwd, displayname):
@@ -47,6 +58,7 @@ class Database:
                 "INSERT INTO users (username, password, displayname) VALUES (?, ?, ?)",
                 (username, hashed_pwd, displayname)
                 )
+            #self.update_last_login(username)
             return True
         except sqlite3.IntegrityError:
             return False
@@ -56,10 +68,19 @@ class Database:
             row = cursor.execute("SELECT password FROM users WHERE username = ?",(username,)).fetchone()
             return row[0] if row is not None else None
 
+    def get_login_info(self, username: str):
+        """Return the row for this user, or None if there is no such user."""
+        with self.conn, closing(self.conn.cursor()) as cursor:
+            return cursor.execute(
+                "SELECT id, password, displayname, last_login FROM Users WHERE username = ?",
+                (username,)
+            ).fetchone()
+
     def username_exists(self, username: str) -> bool:
         """Return True if a user with this username is already in the database."""
         with self.conn as cursor:
             returner = cursor.execute("SELECT 1 FROM Users WHERE username = ?", (username,)).fetchone()
+            #print("82",returner is not None)
             return returner is not None
 
     def update_last_login(self, username: str) -> None:
@@ -78,18 +99,21 @@ class Database:
         column), and OUTPUT INSERTED.sessionid hands it back to us.
         """
         with self.conn:
-                session_id = str(self.conn.execute(
+                self.conn.execute(
                 """
                 INSERT INTO Sessions (userid, expiry)
-                OUTPUT INSERTED.sessionid
-                VALUES (?, DATEADD(SECOND, ?, GETDATE()))
+                VALUES (?, ?)
                 """,
-                (user_id, SESSION_LIFETIME_SECONDS),
-            ).fetchone()[0])
+                (
+                    user_id,
+                    datetime.datetime.now() + datetime.timedelta(seconds=SESSION_LIFETIME_SECONDS),
+                )
+                )
+                session_id = str(self.conn.execute("SELECT sessionid FROM sessions WHERE userid = ?", (user_id,)).fetchall()[-1][0])
         self.conn.commit()
         return session_id
 
-    def delete_session(self, session_id: str) -> None:
+    def delete_session(self, session_id: int) -> None:
         """Remove a session from the Sessions table."""
         with self.conn:
                 self.conn.execute("DELETE FROM Sessions WHERE sessionid = ?", (session_id,))
@@ -101,23 +125,21 @@ class Database:
                 self.conn.execute("DELETE FROM Sessions WHERE userid = (SELECT userid FROM Sessions WHERE sessionid = ?)", (session_id,))
         self.conn.commit()
 
-    def get_session_user(self, session_id: str):
+    def get_session_user(self, session_id: int):
         """Return the logged-in user's info for a session, or None if the session doesn't exist."""
-        with self.conn:
-            user = self.conn.execute(
-                """
-                SELECT Users.userid, Users.username, Users.display_name, Users.last_login,
-                       Sessions.sessionid, Sessions.expiry
-                FROM Sessions
-                JOIN Users ON Users.userid = Sessions.userid
-                WHERE Sessions.sessionid = ?
-                """,
-                (session_id,),
-            ).fetchone()
-            if user and user[5] < datetime.datetime.now():
-                self.delete_session(session_id)
-                return None
-            return user
+        try:
+            with self.conn:
+                userid = self.conn.execute("SELECT userid, expiry FROM sessions WHERE sessionid = ?",(session_id,)).fetchone()
+                print("135",userid)
+                user = self.conn.execute("SELECT * FROM users WHERE username = ?",(userid[0],)).fetchone()
+                print("138", self.conn.execute("SELECT * FROM sessions").fetchall(), user)
+                #if user and userid[1] < datetime.datetime.now():
+                #    print("104here")
+                #    self.delete_session(session_id)
+                #    return None
+                return user
+        except sqlite3.IntegrityError:
+            return None
     
     def get_user_id(self, username: str) -> int | None:
         with self.conn, closing(self.conn.cursor()) as cursor:
@@ -174,3 +196,19 @@ def get_db() -> Database:
     if "db" not in g:
         g.db = Database("testing.db")#mssql_python.connect(os.environ[CONNECTION_STRING_VARIABLE]))
     return g.db
+
+def close_db(exception: BaseException | None = None) -> None:
+    """Close this request's Database, if the request opened one.
+
+    Flask calls this automatically at the end of every request (see setup_for_app).
+    Flask passes in the exception that ended the request (or None), which we
+    don't need, but the function still has to accept it.
+    """
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
+
+def setup_for_app(app: Flask) -> None:
+    """Hook the database into the app. Call this from create_app()."""
+    app.teardown_appcontext(close_db)

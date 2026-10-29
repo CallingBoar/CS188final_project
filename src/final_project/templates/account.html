@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}My account{% endblock %}
+
+{% block content %}
+  <h1>Hello, {{ current_user.display_name }}!</h1>
+  <p class="lead">Only logged-in users can see this page.</p>
+  <ul class="list-group">
+    <li class="list-group-item">Username: {{ current_user.username }}</li>
+    <li class="list-group-item">Session ID: <code>{{ current_user.sessionid }}</code></li>
+    <li class="list-group-item">Session expires: {{ current_user.expiry }} (UTC)</li>
+    <button type="button" id="fullLogout" class="btn btn-outline-danger btn-sm">Log out everywhere</button>
+  </ul>
+{% endblock %}

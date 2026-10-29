@@ -93,12 +93,14 @@ def load_current_user() -> None:
         return
 
     session_id = verify_session_cookie(request.cookies.get(SESSION_COOKIE_NAME))
+    print("96",session_id)
     if session_id is None:
         return
 
     # This is None if the session isn't in the table anymore (for example,
     # because the user logged out somewhere else).
-    g.current_user = get_db().get_session_user(session_id)
+    g.current_user = get_db().get_session_user(int(session_id))
+    print("103",g.current_user)
 
 
 def inject_current_user() -> dict:
@@ -114,6 +116,7 @@ def login_required(view):
 
     @functools.wraps(view)
     def wrapper(*args, **kwargs):
+        print(g.current_user)
         if g.current_user is None:
             return redirect(url_for("index"))
         return view(*args, **kwargs)
